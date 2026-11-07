@@ -12,8 +12,8 @@ application:
       backend: http://part-db:80/
 services:
   part-db:
-    # upstream: jbtronics/part-db1:2.20.5
-    image: docker.1ms.run/jbtronics/part-db1:2.20.5
+    # upstream: jbtronics/part-db1:v2.20.5
+    image: docker.1ms.run/jbtronics/part-db1:v2.20.5
     environment:
       - APP_DEBUG=0
       # Auto-run DB migrations on start (official entrypoint flag)
