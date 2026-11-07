@@ -1,0 +1,14 @@
+form:
+  - type: password
+    id: admin_pw
+    label:
+      zh: 初始管理员密码
+      en: Initial admin password
+    format: password
+    min_len: 8
+    default: {{PASSWORD_admin_pw}}
+    rule:
+      - required
+    auto_gen:
+      - charset: alnum
+        length: 16

@@ -1,0 +1,53 @@
+application:
+  subdomain: part-db
+  multi_instance: false
+  # Part-DB has a login system, but registration is admin-controlled and the
+  # initial admin account is a fixed-name account (only the password can be
+  # seeded via env). Keep platform entry auth as the first line of defense:
+  # no public_path.
+  upstreams:
+    - location: /package-licenses/
+      backend: file:///lzcapp/pkg/content/licenses/
+    - location: /
+      backend: http://part-db:80/
+services:
+  part-db:
+    # upstream: jbtronics/part-db1:2.20.5
+    image: docker.1ms.run/jbtronics/part-db1:2.20.5
+    environment:
+      - APP_DEBUG=0
+      # Auto-run DB migrations on start (official entrypoint flag)
+      - DB_AUTOMIGRATE=true
+      # Seed the initial admin password; otherwise a random one is generated
+      # and only printed into container logs (unreachable for our users).
+      - INITIAL_ADMIN_PW={{PASSWORD_admin_pw}}
+      # Symfony app: keep the app secret stable across container recreation
+      - APP_SECRET={{ printf "%x" (stable_secret "part_db_app_secret") }}
+      # We are behind the platform reverse proxy; trust private ranges so
+      # X-Forwarded-* headers (https detection, hostnames) work correctly.
+      - TRUSTED_PROXIES=private_ranges
+      - TZ=Asia/Shanghai
+    binds:
+      # SQLite DB + uploads/attachments live in uploads/ by upstream default
+      - /lzcapp/var/data:/var/www/html/uploads
+      # User-uploaded media (part pictures etc.)
+      - /lzcapp/var/media:/var/www/html/public/media
+usage: |
+  Part-DB 是一个电子元器件库存管理系统（Symfony 编写）：管理元件分类、
+  存储位置、供应商、价格与库存，支持附件、条码扫描与标签打印。
+
+  使用方法：
+  1. 打开应用，用管理员账号登录：用户名 admin，密码为部署时生成的随机密码
+     （在部署参数中查看/修改）。
+  2. 登录后请立刻在设置中修改密码。
+  3. 其他用户由管理员在后台创建（注册不由访客自助完成）。
+  4. 首次启动会自动建表（SQLite，库文件在 /lzcapp/var/data 内），
+     数据（含数据库与上传附件）都在 /lzcapp/var 与 /lzcapp/var/media，
+     卸载应用会一并删除，请定期备份。
+
+  数据与安全：
+  - 本包不对外开放未登录访问（不加 public_path），平台入口鉴权为第一道防线。
+  - 默认使用 SQLite（官方 Docker 默认），无需额外数据库容器。
+
+  说明：
+  - 本包未做实机验证，功能以官方文档为准：https://docs.part-db.de
